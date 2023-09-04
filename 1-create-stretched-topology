@@ -27,7 +27,6 @@ provider "nsxt" {
   host                  = "10.0.20.31"
   username              = "admin"
   password              = "VMware123!VMware123!"
-  #alias                 = "gm-cmi-rec"
   global_manager        = true
   allow_unverified_ssl  = true
   max_retries           = 10
@@ -39,20 +38,15 @@ provider "nsxt" {
 data "nsxt_policy_site" "lm-cmi-rec" {
   display_name = "lm-cmi-rec"
 }
+
 data "nsxt_policy_site" "lm-sck-pri" {
   display_name = "lm-sck-pri"
 }
-
-#data "nsxt_policy_site" "gm-cmi-rec" {
-#  display_name = "gm-cmi-rec"
-#}
-
 
 data "nsxt_policy_transport_zone" "mgmt-domain-tz-overlay01" {
   display_name = "mgmt-domain-tz-overlay01"
   site_path    = data.nsxt_policy_site.lm-sck-pri.path
 }
-
 
 data "nsxt_policy_edge_cluster" "EC-01" {
   display_name = "EC-01"
@@ -65,13 +59,11 @@ data "nsxt_policy_edge_cluster" "EC-02" {
 }
 
 data "nsxt_policy_edge_node" "edge1-mgmt" {
-#    provider = nsxt.lm-cmi-rec
     edge_cluster_path   = data.nsxt_policy_edge_cluster.EC-01.path
     display_name        = "edge1-mgmt"
 }
 
 data "nsxt_policy_edge_node" "edge2-mgmt" {
-#    provider = nsxt.lm-cmi-rec
     edge_cluster_path   = data.nsxt_policy_edge_cluster.EC-01.path
     display_name        = "edge2-mgmt"
 }
@@ -84,11 +76,9 @@ resource "nsxt_policy_tier0_gateway" "global_t0" {
   failover_mode = "NON_PREEMPTIVE"
   locale_service {
     edge_cluster_path = data.nsxt_policy_edge_cluster.EC-01.path
-    #display_name = "cmi-rec"
   }
   locale_service {
     edge_cluster_path = data.nsxt_policy_edge_cluster.EC-02.path
-    #display_name = "sck-pri"
   }
   tag {
     tag = "terraform"
@@ -98,9 +88,7 @@ resource "nsxt_policy_tier0_gateway" "global_t0" {
 resource "nsxt_policy_gateway_redistribution_config" "lm-cmi-rec-redistribute" {
   gateway_path = nsxt_policy_tier0_gateway.global_t0.path
   site_path    = data.nsxt_policy_site.lm-cmi-rec.path
-
   bgp_enabled = true
-
   rule {
     name  = "cmi-rule-1"
     types = ["TIER1_CONNECTED", "TIER1_LB_VIP"]
@@ -109,9 +97,7 @@ resource "nsxt_policy_gateway_redistribution_config" "lm-cmi-rec-redistribute" {
 resource "nsxt_policy_gateway_redistribution_config" "lm-sck-pri-redistribute" {
   gateway_path = nsxt_policy_tier0_gateway.global_t0.path
   site_path    = data.nsxt_policy_site.lm-sck-pri.path
-
   bgp_enabled = true
-
   rule {
     name  = "sck-rule-1"
     types = ["TIER1_CONNECTED", "TIER1_LB_VIP"]
@@ -119,9 +105,9 @@ resource "nsxt_policy_gateway_redistribution_config" "lm-sck-pri-redistribute" {
 }
 
 
-resource "nsxt_policy_tier1_gateway" "tier1_gw" {
+resource "nsxt_policy_tier1_gateway" "global_t1" {
   description  = "Tier-1 provisioned by Terraform"
-  display_name = "Tier1-gw1"
+  display_name = "Global-T1"
   route_advertisement_types = ["TIER1_CONNECTED"]
   tier0_path   = nsxt_policy_tier0_gateway.global_t0.path
     locale_service {
@@ -138,29 +124,23 @@ resource "nsxt_policy_tier1_gateway" "tier1_gw" {
 resource "nsxt_policy_segment" "ov-web" {
   display_name        = "ov-web"
   nsx_id              = "ov-web"
-  connectivity_path   = nsxt_policy_tier1_gateway.tier1_gw.path
+  connectivity_path   = nsxt_policy_tier1_gateway.global_t1.path
   subnet {
     cidr = "172.16.10.1/24"
   }
   advanced_config {
     connectivity = "ON"
   }
-  tag {
-    tag = "terraform"
-  }
 }
 resource "nsxt_policy_segment" "ov-db" {
   display_name        = "ov-db"
   nsx_id              = "ov-db"
-  connectivity_path   = nsxt_policy_tier1_gateway.tier1_gw.path
+  connectivity_path   = nsxt_policy_tier1_gateway.global_t1.path
   subnet {
     cidr = "172.16.20.1/24"
   }
   advanced_config {
     connectivity = "ON"
-  }
-  tag {
-    tag = "terraform"
   }
 }
 
