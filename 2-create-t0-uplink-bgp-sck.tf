@@ -86,7 +86,7 @@ resource "nsxt_policy_vlan_segment" "vlan-400" {
     vlan_ids = ["400"]
 }
 
-# Create cmi-rec Tier-0 Gateway Uplink Interfaces
+# Create lm-sck-pri Tier-0 Gateway Uplink Interfaces
 
 resource "nsxt_policy_tier0_gateway_interface" "vlan-300-edge1-mgmt" {
     display_name        = "vlan-300-edge1-mgmt"
